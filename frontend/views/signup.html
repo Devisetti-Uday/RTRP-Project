@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sign Up — Student Performance Analytics</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" />
+  <link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+
+  <div class="analytics-bg" id="analytics-bg"></div>
+
+  <div class="auth-wrapper" style="padding: 40px 24px;">
+    <div class="auth-card" style="max-width:540px;">
+
+      <div class="auth-logo">
+        <div class="logo-icon">🎓</div>
+        <h1>Student Performance<br>ANALYTICS</h1>
+        <p>Academic Intelligence Platform</p>
+      </div>
+
+      <h2 class="auth-title">Create Account</h2>
+      <p class="auth-subtitle">Join the academic analytics network</p>
+
+      <div class="alert-custom alert-error" id="error-alert"></div>
+      <div class="alert-custom alert-success" id="success-alert"></div>
+
+      <form id="signup-form" novalidate>
+
+        <div class="row g-3">
+          <div class="col-12">
+            <div class="form-group" style="margin-bottom:0;">
+              <label class="form-label" for="name">Full Name</label>
+              <input type="text" id="name" class="form-control" placeholder="Enter Your Name" required />
+              <div class="invalid-feedback" id="name-error" style="display:none;"></div>
+            </div>
+          </div>
+
+          <div class="col-12">
+            <div class="form-group" style="margin-bottom:0;">
+              <label class="form-label" for="email">Email Address</label>
+              <input type="email" id="email" class="form-control" placeholder="your@institution.edu" autocomplete="email" required />
+              <div class="invalid-feedback" id="email-error" style="display:none;"></div>
+            </div>
+          </div>
+
+          <div class="col-md-6">
+            <div class="form-group" style="margin-bottom:0;">
+              <label class="form-label" for="password">Password</label>
+              <input type="password" id="password" class="form-control" placeholder="Min. 6 characters" autocomplete="new-password" required />
+              <div class="invalid-feedback" id="password-error" style="display:none;"></div>
+            </div>
+          </div>
+
+          <div class="col-md-6">
+            <div class="form-group" style="margin-bottom:0;">
+              <label class="form-label" for="confirmPassword">Confirm Password</label>
+              <input type="password" id="confirmPassword" class="form-control" placeholder="Repeat password" autocomplete="new-password" required />
+              <div class="invalid-feedback" id="confirm-error" style="display:none;"></div>
+            </div>
+          </div>
+
+          <div class="col-12">
+            <div class="form-group" style="margin-bottom:0;">
+              <label class="form-label" for="college">College / Institution Name</label>
+              <input type="text" id="college" class="form-control" placeholder="Enter your college or institution name" required />
+              <div class="invalid-feedback" id="college-error" style="display:none;"></div>
+            </div>
+          </div>
+
+          <div class="col-12">
+            <div class="form-group" style="margin-bottom:0;">
+              <label class="form-label" for="role">Your Role</label>
+              <select id="role" class="form-control " required>
+                <option value="" disabled selected>Select your role</option>
+                <option value="Student">Student</option>
+                <option value="Faculty">Faculty</option>
+                <option value="Researcher">Researcher</option>
+              </select>
+              <div class="invalid-feedback" id="role-error" style="display:none;"></div>
+            </div>
+          </div>
+        </div>
+
+        <button type="submit" class="btn-primary-custom" id="submit-btn" style="margin-top:24px;">
+          Create Account →
+        </button>
+      </form>
+
+      <div class="auth-switch">
+        Already have an account? <a href="/login">Sign In</a>
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/utils.js"></script>
+  <script>
+    createParticles(25);
+
+    // Check if already logged in
+    API.get('/auth/me').then(data => {
+      if (data.success) {
+        window.location.href = data.user.role === 'Admin' ? '/admin' : '/loading';
+      }
+    }).catch(() => {});
+
+    document.getElementById('signup-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      clearErrors();
+
+      const name = document.getElementById('name').value.trim();
+      const email = document.getElementById('email').value.trim();
+      const password = document.getElementById('password').value;
+      const confirmPassword = document.getElementById('confirmPassword').value;
+      const college = document.getElementById('college').value.trim();
+      const role = document.getElementById('role').value;
+
+      let valid = true;
+
+      if (!name || name.length < 2) { showFieldError('name-error', 'Full name is required.'); valid = false; }
+      if (!email || !/\S+@\S+\.\S+/.test(email)) { showFieldError('email-error', 'Valid email is required.'); valid = false; }
+      if (!password || password.length < 6) { showFieldError('password-error', 'Password must be at least 6 characters.'); valid = false; }
+      if (password !== confirmPassword) { showFieldError('confirm-error', 'Passwords do not match.'); valid = false; }
+      if (!college) { showFieldError('college-error', 'College name is required.'); valid = false; }
+      if (!role) { showFieldError('role-error', 'Please select your role.'); valid = false; }
+
+      if (!valid) return;
+
+      const btn = document.getElementById('submit-btn');
+      btn.disabled = true;
+      btn.textContent = 'Creating Account...';
+
+      try {
+        const data = await API.post('/auth/signup', { name, email, password, confirmPassword, college, role });
+
+        if (data.success) {
+          showAlert('success-alert', '✅ ' + data.message + ' Redirecting...');
+          setTimeout(() => { window.location.href = '/loading'; }, 1000);
+        } else {
+          const msg = data.errors ? data.errors.map(e => e.msg).join(', ') : data.message;
+          showAlert('error-alert', '❌ ' + msg);
+          btn.disabled = false;
+          btn.textContent = 'Create Account →';
+        }
+      } catch (err) {
+        showAlert('error-alert', '❌ Connection error. Please try again.');
+        btn.disabled = false;
+        btn.textContent = 'Create Account →';
+      }
+    });
+
+    function showAlert(id, msg) {
+      const el = document.getElementById(id);
+      el.textContent = msg;
+      el.style.display = 'block';
+    }
+
+    function showFieldError(id, msg) {
+      const el = document.getElementById(id);
+      el.textContent = msg;
+      el.style.display = 'block';
+    }
+
+    function clearErrors() {
+      ['name-error','email-error','password-error','confirm-error','college-error','role-error'].forEach(id => {
+        const el = document.getElementById(id);
+        el.textContent = ''; el.style.display = 'none';
+      });
+      ['error-alert','success-alert'].forEach(id => {
+        document.getElementById(id).style.display = 'none';
+      });
+    }
+  </script>
+</body>
+</html>

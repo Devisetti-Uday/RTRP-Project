@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard — Student Performance Analytics</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" />
+  <link rel="stylesheet" href="/css/style.css" />
+  <style>
+    .nav-section {
+      display: none;
+      animation: sectionFade 0.4s ease;
+    }
+    .nav-section.active { display: block; }
+    @keyframes sectionFade {
+      from { opacity: 0; transform: translateY(12px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Navbar toggler dark theme fix */
+    .navbar-toggler {
+      border-color: rgba(0,212,255,0.3) !important;
+    }
+    .navbar-toggler-icon {
+      background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='rgba%280, 212, 255, 0.8%29' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e") !important;
+    }
+
+    /* Mini charts overview on home */
+    .overview-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      padding: 24px;
+    }
+
+    .overview-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      padding: 20px;
+      text-align: center;
+      transition: var(--transition);
+      cursor: default;
+    }
+
+    .overview-card:hover {
+      border-color: var(--border-glow);
+      box-shadow: var(--shadow-glow);
+      transform: translateY(-3px);
+    }
+
+    .overview-card .big-num {
+      font-family: var(--font-display);
+      font-size: 42px;
+      font-weight: 700;
+      background: var(--gradient-accent);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      line-height: 1;
+    }
+
+    .overview-card .big-label {
+      font-size: 12px;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: var(--text-secondary);
+      margin-top: 8px;
+    }
+
+    .quick-nav {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 16px;
+      padding: 0 24px 24px;
+    }
+
+    .quick-nav-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      padding: 24px 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      cursor: pointer;
+      transition: var(--transition);
+      text-align: center;
+    }
+
+    .quick-nav-card:hover {
+      border-color: var(--border-glow);
+      background: rgba(0, 212, 255, 0.05);
+      transform: translateY(-4px);
+      box-shadow: var(--shadow-glow);
+    }
+
+    .quick-nav-card .nav-icon {
+      font-size: 32px;
+    }
+
+    .quick-nav-card .nav-label {
+      font-family: var(--font-display);
+      font-size: 15px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      color: var(--text-primary);
+    }
+
+    .quick-nav-card .nav-desc {
+      font-size: 12px;
+      color: var(--text-secondary);
+    }
+
+    .section-divider {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 0 24px 16px;
+    }
+
+    .section-divider h3 {
+      font-family: var(--font-display);
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--text-primary);
+      white-space: nowrap;
+    }
+
+    .section-divider::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border-color);
+    }
+  </style>
+</head>
+<body>
+
+  <div class="analytics-bg"></div>
+
+  <!-- ── NAVBAR ──────────────────────────────────────────────────── -->
+  <nav class="navbar navbar-expand-lg dashboard-navbar">
+    <div class="container-fluid">
+
+      <a class="navbar-brand" href="#">
+        🎓 <span>SPAD</span>
+      </a>
+
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+
+      <div class="collapse navbar-collapse" id="mainNav">
+        <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+          <li class="nav-item">
+            <button class="nav-link-custom active active" onclick="switchSection('home', this)">Dashboard</button>
+          </li>
+          <li class="nav-item">
+            <button class="nav-link-custom" onclick="switchSection('batch', this)">Batch Analysis</button>
+          </li>
+          <li class="nav-item">
+            <button class="nav-link-custom" onclick="switchSection('branch', this)">Branch Analysis</button>
+          </li>
+          <li class="nav-item">
+            <button class="nav-link-custom" onclick="switchSection('course', this)">Course Analysis</button>
+          </li>
+          <li class="nav-item">
+            <button class="nav-link-custom" onclick="switchSection('semester', this)">Semester Analysis</button>
+          </li>
+          <li class="nav-item">
+            <button class="nav-link-custom" onclick="switchSection('enquire', this)">Enquire</button>
+          </li>
+        </ul>
+
+        <div class="d-flex align-items-center gap-3">
+          <div class="user-badge d-none d-lg-flex" id="user-badge">
+            <div class="dot"></div>
+            <span id="user-name">Loading...</span>
+          </div>
+          <button class="nav-link-custom nav-logout" onclick="doLogout()">⏻ Logout</button>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ── SECTIONS ────────────────────────────────────────────────── -->
+
+  <!-- HOME OVERVIEW -->
+  
+  <div class="nav-section active" id="section-home">
+    <div class="dashboard-header">
+      <div class="section-badge">Overview</div>
+      <h2 id="dash-greeting">College Result Analytics Dashboard</h2>
+      <p id="dash-subtitle">Monitor academic performance metrics across batches, branches, and semesters</p>
+    </div>
+
+    <!-- Placeholder PBI preview -->
+    <!-- <div class="section-divider mt-3"><h3>Live Analytics Preview</h3></div> -->
+    <div class="pbi-panel">
+      <iframe id="iframe-home" src="about:blank" title="Overall Analysis Dashboard" allowfullscreen></iframe>
+      <div class="pbi-placeholder" id="placeholder-home">
+        <div class="pbi-icon">📅</div>
+        <div>
+          <h4 style="font-family:var(--font-display);font-size:20px;color:var(--text-primary);margin-bottom:8px;">Overall Analysis</h4>
+          <p style="color:var(--text-secondary);font-size:14px;max-width:360px;line-height:1.6;">
+            Embed your Power BI Overall Analysis report here by updating <code style="color:var(--accent-cyan);">PBI_LINKS.home</code> in the script below.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- BATCH ANALYSIS -->
+  <div class="nav-section" id="section-batch">
+    <div class="dashboard-header">
+      <div class="section-badge">Batch Analysis</div>
+      <h2>Year-wise Performance Analytics</h2>
+      <p>Analyze academic performance trends across different batches and academic years</p>
+    </div>
+    <div class="pbi-panel">
+      <iframe id="iframe-batch" src="about:blank" title="Batch Analysis Dashboard" allowfullscreen></iframe>
+      <div class="pbi-placeholder" id="placeholder-batch">
+        <div class="pbi-icon">📅</div>
+        <div>
+          <h4 style="font-family:var(--font-display);font-size:20px;color:var(--text-primary);margin-bottom:8px;">Batch Analysis</h4>
+          <p style="color:var(--text-secondary);font-size:14px;max-width:360px;line-height:1.6;">
+            Embed your Power BI Batch Analysis report here by updating <code style="color:var(--accent-cyan);">PBI_LINKS.batch</code> in the script below.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- BRANCH ANALYSIS -->
+  <div class="nav-section" id="section-branch">
+    <div class="dashboard-header">
+      <div class="section-badge">Branch Analysis</div>
+      <h2>Department Performance Metrics</h2>
+      <p>Compare academic outcomes across engineering branches and departments</p>
+    </div>
+    <div class="pbi-panel">
+      <iframe id="iframe-branch" src="about:blank" title="Branch Analysis Dashboard" allowfullscreen></iframe>
+      <div class="pbi-placeholder" id="placeholder-branch">
+        <div class="pbi-icon">🏛️</div>
+        <div>
+          <h4 style="font-family:var(--font-display);font-size:20px;color:var(--text-primary);margin-bottom:8px;">Branch Analysis</h4>
+          <p style="color:var(--text-secondary);font-size:14px;max-width:360px;line-height:1.6;">
+            Embed your Power BI Branch Analysis report by updating <code style="color:var(--accent-cyan);">PBI_LINKS.branch</code>.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- COURSE ANALYSIS -->
+  <div class="nav-section" id="section-course">
+    <div class="dashboard-header">
+      <div class="section-badge">Course Analysis</div>
+      <h2>Subject-wise Performance Analytics</h2>
+      <p>Drill down into individual course pass rates, grade distributions, and at-risk subjects</p>
+    </div>
+    <div class="pbi-panel">
+      <iframe id="iframe-course" src="about:blank" title="Course Analysis Dashboard" allowfullscreen></iframe>
+      <div class="pbi-placeholder" id="placeholder-course">
+        <div class="pbi-icon">📚</div>
+        <div>
+          <h4 style="font-family:var(--font-display);font-size:20px;color:var(--text-primary);margin-bottom:8px;">Course Analysis</h4>
+          <p style="color:var(--text-secondary);font-size:14px;max-width:360px;line-height:1.6;">
+            Embed your Power BI Course Analysis report by updating <code style="color:var(--accent-cyan);">PBI_LINKS.course</code>.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SEMESTER ANALYSIS -->
+  <div class="nav-section" id="section-semester">
+    <div class="dashboard-header">
+      <div class="section-badge">Semester Analysis</div>
+      <h2>Term-wise Academic Tracking</h2>
+      <p>Monitor semester-over-semester performance improvements and identify intervention points</p>
+    </div>
+    <div class="pbi-panel">
+      <iframe id="iframe-semester" src="about:blank" title="Semester Analysis Dashboard" allowfullscreen></iframe>
+      <div class="pbi-placeholder" id="placeholder-semester">
+        <div class="pbi-icon">📊</div>
+        <div>
+          <h4 style="font-family:var(--font-display);font-size:20px;color:var(--text-primary);margin-bottom:8px;">Semester Analysis</h4>
+          <p style="color:var(--text-secondary);font-size:14px;max-width:360px;line-height:1.6;">
+            Embed your Power BI Semester Analysis report by updating <code style="color:var(--accent-cyan);">PBI_LINKS.semester</code>.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ENQUIRE SECTION -->
+  <div class="nav-section" id="section-enquire">
+    <div class="dashboard-header">
+      <div class="section-badge">Contact Us</div>
+      <h2>Submit an Enquiry</h2>
+      <p>Have a question or need support? Our team will get back to you within 24–48 hours</p>
+    </div>
+
+    <div class="enquiry-section">
+      <div class="enquiry-card">
+        <div class="alert-custom alert-success" id="enq-success"></div>
+        <div class="alert-custom alert-error" id="enq-error"></div>
+
+        <form id="enquiry-form" novalidate>
+          <div class="row g-3">
+            <div class="col-md-6">
+              <div class="form-group" style="margin-bottom:0;">
+                <label class="form-label">Full Name</label>
+                <input type="text" id="enq-name" class="form-control" placeholder="Your full name" required />
+                <div class="invalid-feedback" id="enq-name-err" style="display:none;"></div>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="form-group" style="margin-bottom:0;">
+                <label class="form-label">Email Address</label>
+                <input type="email" id="enq-email" class="form-control" placeholder="your@email.com" required />
+                <div class="invalid-feedback" id="enq-email-err" style="display:none;"></div>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="form-group" style="margin-bottom:0;">
+                <label class="form-label">Phone Number</label>
+                <input type="tel" id="enq-phone" class="form-control" placeholder="+91 9876543210" required />
+                <div class="invalid-feedback" id="enq-phone-err" style="display:none;"></div>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="form-group" style="margin-bottom:0;">
+                <label class="form-label">Role</label>
+                <select id="enq-role" class="form-control" required>
+                  <option value="" disabled selected>Select role</option>
+                  <option value="Student">Student</option>
+                  <option value="Faculty">Faculty</option>
+                  <option value="Researcher">Researcher</option>
+                  <option value="Administrator">Administrator</option>
+                  <option value="Other">Other</option>
+                </select>
+                <div class="invalid-feedback" id="enq-role-err" style="display:none;"></div>
+              </div>
+            </div>
+            <div class="col-12">
+              <div class="form-group" style="margin-bottom:0;">
+                <label class="form-label">College / Institution</label>
+                <input type="text" id="enq-college" class="form-control" placeholder="Your institution name" required />
+                <div class="invalid-feedback" id="enq-college-err" style="display:none;"></div>
+              </div>
+            </div>
+            <div class="col-12">
+              <div class="form-group" style="margin-bottom:0;">
+                <label class="form-label">Message</label>
+                <textarea id="enq-message" class="form-control" rows="5" placeholder="Describe your enquiry in detail..." required style="resize:vertical;"></textarea>
+                <div class="invalid-feedback" id="enq-msg-err" style="display:none;"></div>
+              </div>
+            </div>
+          </div>
+
+          <button type="submit" class="btn-primary-custom" id="enq-submit" style="margin-top:24px;">
+            Send Enquiry 
+          </button>
+        </form>
+
+        <!-- <div style="margin-top:24px; padding:16px; background:var(--bg-glass); border:1px solid var(--border-color); border-radius:8px; font-size:13px; color:var(--text-secondary); text-align:center;">
+          📧 You will receive an automatic confirmation email after submission
+        </div> -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast container -->
+  <div class="toast-container" id="toast-container"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="/js/utils.js"></script>
+  <script>
+    // ─── Power BI Embed Links ─────────────────────────────────────
+    // Replace with your actual Power BI embed URLs:
+    const PBI_LINKS = {
+      home:     'https://app.powerbi.com/reportEmbed?reportId=d649995c-1461-4eb5-8d25-3437ab0b0062&autoAuth=true&ctid=2c6c5ba1-3a7c-42f1-a301-195c7e9585e2&pageName=College Dashboard', // e.g. 'https://app.powerbi.com/view?r=YOUR_DASHBOARD_EMBED_TOKEN'
+      batch:    'https://app.powerbi.com/reportEmbed?reportId=d649995c-1461-4eb5-8d25-3437ab0b0062&autoAuth=true&ctid=2c6c5ba1-3a7c-42f1-a301-195c7e9585e2&pageName=Batch Wise', // e.g. 'https://app.powerbi.com/view?r=YOUR_BATCH_EMBED_TOKEN'
+      branch:   'https://app.powerbi.com/reportEmbed?reportId=d649995c-1461-4eb5-8d25-3437ab0b0062&autoAuth=true&ctid=2c6c5ba1-3a7c-42f1-a301-195c7e9585e2&pageName=Branch Wise', // e.g. 'https://app.powerbi.com/view?r=YOUR_BRANCH_EMBED_TOKEN'
+      course:   'https://app.powerbi.com/reportEmbed?reportId=d649995c-1461-4eb5-8d25-3437ab0b0062&autoAuth=true&ctid=2c6c5ba1-3a7c-42f1-a301-195c7e9585e2&pageName=Course Wise', // e.g. 'https://app.powerbi.com/view?r=YOUR_COURSE_EMBED_TOKEN'
+      semester: 'https://app.powerbi.com/reportEmbed?reportId=d649995c-1461-4eb5-8d25-3437ab0b0062&autoAuth=true&ctid=2c6c5ba1-3a7c-42f1-a301-195c7e9585e2&pageName=Semester wise', // e.g. 'https://app.powerbi.com/view?r=YOUR_SEMESTER_EMBED_TOKEN'
+    };
+
+    // ─── Auth check ───────────────────────────────────────────────
+    let currentUser = null;
+
+    (async () => {
+      const data = await API.get('/auth/me').catch(() => null);
+      if (!data || !data.success) {
+        window.location.href = '/login';
+        return;
+      }
+      currentUser = data.user;
+
+      // Admin redirect
+      if (currentUser.role === 'Admin') {
+        window.location.href = '/admin';
+        return;
+      }
+
+      // Set user info
+      document.getElementById('user-name').textContent = currentUser.name;
+      document.getElementById('dash-greeting').textContent =
+        `Welcome back, ${currentUser.name.split(' ')[0]}`;
+      document.getElementById('dash-subtitle').textContent =
+        `${currentUser.college} · ${currentUser.role} · Academic Analytics Dashboard`;
+
+      // Pre-fill enquiry form
+      document.getElementById('enq-name').value = currentUser.name || '';
+      switchSection('home');
+    })();
+
+    // ─── Section switching with dynamic iframe loading ─────────────
+    const sections = ['home','batch','branch','course','semester','enquire'];
+    const iframeKeys = ['home','batch','branch','course','semester'];
+    const loadedIframes = new Set();
+
+    function switchSection(name, btn) {
+      // Update sections
+      sections.forEach(s => {
+        document.getElementById('section-' + s).classList.remove('active');
+      });
+      document.getElementById('section-' + name).classList.add('active');
+
+      // Update nav buttons
+      document.querySelectorAll('.nav-link-custom').forEach(b => b.classList.remove('active'));
+      if (btn) btn.classList.add('active');
+
+      // Load iframe on first visit
+      if (iframeKeys.includes(name) && !loadedIframes.has(name)) {
+        loadedIframes.add(name);
+        const url = PBI_LINKS[name];
+        const iframe = document.getElementById('iframe-' + name);
+        const placeholder = document.getElementById('placeholder-' + name);
+
+        if (url && url.trim() !== '') {
+          iframe.src = url;
+          if (placeholder) placeholder.style.display = 'none';
+        }
+        // If no URL configured, placeholder remains visible
+      }
+
+      // Scroll to top
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+
+      // Close mobile navbar
+      const nav = document.getElementById('mainNav');
+      if (nav.classList.contains('show')) {
+        bootstrap.Collapse.getInstance(nav)?.hide();
+      }
+    }
+
+    // ─── Quick nav cards ──────────────────────────────────────────
+    // Already calls switchSection(name, null) — need to update active nav too
+    const origSwitch = switchSection;
+
+    // ─── Logout ───────────────────────────────────────────────────
+    async function doLogout() {
+      await API.post('/auth/logout', {});
+      window.location.href = '/login';
+    }
+
+    // ─── Enquiry Form ─────────────────────────────────────────────
+    document.getElementById('enquiry-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      clearEnqErrors();
+
+      const name    = document.getElementById('enq-name').value.trim();
+      const email   = document.getElementById('enq-email').value.trim();
+      const phone   = document.getElementById('enq-phone').value.trim();
+      const role    = document.getElementById('enq-role').value;
+      const college = document.getElementById('enq-college').value.trim();
+      const message = document.getElementById('enq-message').value.trim();
+
+      let valid = true;
+      if (!name)  { showEnqErr('enq-name-err', 'Name is required.'); valid = false; }
+      if (!email || !/\S+@\S+\.\S+/.test(email)) { showEnqErr('enq-email-err', 'Valid email required.'); valid = false; }
+      if (!phone || !/^[0-9+\-\s()]{7,15}$/.test(phone)) { showEnqErr('enq-phone-err', 'Valid phone number required.'); valid = false; }
+      if (!role)    { showEnqErr('enq-role-err', 'Please select a role.'); valid = false; }
+      if (!college) { showEnqErr('enq-college-err', 'College name is required.'); valid = false; }
+      if (!message) { showEnqErr('enq-msg-err', 'Message is required.'); valid = false; }
+      if (!valid) return;
+
+      const btn = document.getElementById('enq-submit');
+      btn.disabled = true;
+      btn.textContent = 'Sending...';
+
+      try {
+        const data = await API.post('/enquiry', { name, email, phone, role, college, message });
+
+        if (data.success) {
+          showEnqAlert('enq-success', '✅ ' + data.message);
+          document.getElementById('enquiry-form').reset();
+          // Re-fill name from session
+          if (currentUser) document.getElementById('enq-name').value = currentUser.name || '';
+        } else {
+          const msg = data.errors ? data.errors.map(e => e.msg).join(' | ') : data.message;
+          showEnqAlert('enq-error', '❌ ' + msg);
+        }
+      } catch (err) {
+        showEnqAlert('enq-error', '❌ Connection error. Please try again.');
+      }
+
+      btn.disabled = false;
+      btn.textContent = 'Send Enquiry ✉️';
+    });
+
+    function showEnqErr(id, msg) {
+      const el = document.getElementById(id);
+      el.textContent = msg; el.style.display = 'block';
+    }
+
+    function showEnqAlert(id, msg) {
+      const el = document.getElementById(id);
+      el.textContent = msg; el.style.display = 'block';
+      setTimeout(() => { el.style.display = 'none'; }, 6000);
+    }
+
+    function clearEnqErrors() {
+      ['enq-name-err','enq-email-err','enq-phone-err','enq-role-err','enq-college-err','enq-msg-err'].forEach(id => {
+        const el = document.getElementById(id);
+        el.textContent = ''; el.style.display = 'none';
+      });
+    }
+
+    createParticles(12);
+  </script>
+</body>
+</html>

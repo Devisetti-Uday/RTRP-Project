@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin Panel — Student Performance Analytics</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" />
+  <link rel="stylesheet" href="/css/style.css" />
+  <style>
+    .admin-page { display: none; animation: sectionFade 0.4s ease; }
+    .admin-page.active { display: block; }
+    @keyframes sectionFade {
+      from { opacity:0; transform:translateY(10px); }
+      to { opacity:1; transform:translateY(0); }
+    }
+
+    /* Topbar */
+    .admin-topbar {
+      position: sticky; top: 0; z-index: 200;
+      background: rgba(8,12,20,0.98);
+      backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border-color);
+      padding: 12px 24px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+
+    .admin-topbar .brand {
+      font-family: var(--font-display); font-size: 18px; font-weight: 700;
+      color: var(--accent-cyan); letter-spacing: 1px;
+    }
+
+    .admin-topbar .brand span { color: var(--text-primary); }
+
+    .admin-topbar .topbar-right {
+      display: flex; align-items: center; gap: 16px;
+    }
+
+    /* Body layout */
+    .admin-layout {
+      display: flex; min-height: calc(100vh - 57px);
+    }
+
+    /* Sidebar */
+    .admin-sidebar {
+      position: sticky; top: 57px;
+      width: 240px; min-width: 240px;
+      height: calc(100vh - 57px);
+      overflow-y: auto;
+      background: var(--bg-secondary);
+      border-right: 1px solid var(--border-color);
+      padding: 20px 0;
+      flex-shrink: 0;
+    }
+
+    .admin-content {
+      flex: 1; padding: 0; overflow: hidden;
+    }
+
+    /* Sidebar label */
+    .sb-label {
+      padding: 16px 20px 6px;
+      font-size: 10px; font-weight: 700;
+      letter-spacing: 2px; text-transform: uppercase;
+      color: var(--text-muted);
+    }
+
+    .sb-item {
+      display: flex; align-items: center; gap: 12px;
+      padding: 12px 20px;
+      font-size: 14px; font-weight: 500;
+      color: var(--text-secondary);
+      cursor: pointer; transition: var(--transition);
+      border-left: 3px solid transparent;
+      user-select: none;
+    }
+
+    .sb-item:hover { color: var(--text-primary); background: rgba(255,255,255,0.03); }
+    .sb-item.active {
+      color: var(--accent-cyan);
+      background: rgba(0,212,255,0.06);
+      border-left-color: var(--accent-cyan);
+    }
+
+    .sb-item .icon { font-size: 16px; width: 20px; text-align: center; }
+
+    /* Page header */
+    .page-header {
+      padding: 28px 28px 20px;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .page-header h2 {
+      font-family: var(--font-display); font-size: 24px; font-weight: 700;
+      color: var(--text-primary); margin-bottom: 4px;
+    }
+
+    .page-header p { color: var(--text-secondary); font-size: 13px; }
+
+    /* Analytics cards */
+    .analytics-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 20px; padding: 24px 28px;
+    }
+
+    /* Table scrollable on small screens */
+    .table-responsive-wrap {
+      overflow-x: auto;
+    }
+
+    /* Search / filter bar */
+    .table-toolbar {
+      padding: 16px 24px;
+      border-bottom: 1px solid var(--border-color);
+      display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+    }
+
+    .search-input {
+      background: var(--bg-glass) !important;
+      border: 1px solid var(--border-color) !important;
+      color: var(--text-primary) !important;
+      padding: 8px 14px !important;
+      border-radius: 6px !important;
+      font-size: 13px !important;
+      width: 240px !important;
+      transition: var(--transition) !important;
+    }
+
+    .search-input:focus {
+      border-color: var(--accent-cyan) !important;
+      outline: none !important;
+      box-shadow: 0 0 0 2px rgba(0,212,255,0.12) !important;
+    }
+
+    .search-input::placeholder { color: var(--text-muted) !important; }
+
+    .count-pill {
+      padding: 4px 12px;
+      background: rgba(0,212,255,0.1);
+      border: 1px solid rgba(0,212,255,0.2);
+      border-radius: 20px; font-size: 12px; color: var(--accent-cyan); font-weight: 600;
+    }
+
+    /* Role distribution mini chart */
+    .role-bars { display: flex; flex-direction: column; gap: 10px; }
+
+    .role-bar-item {
+      display: flex; align-items: center; gap: 12px;
+    }
+
+    .role-bar-label {
+      width: 80px; font-size: 12px; color: var(--text-secondary); text-align: right;
+    }
+
+    .role-bar-track {
+      flex: 1; height: 8px; background: var(--bg-glass);
+      border-radius: 4px; overflow: hidden;
+    }
+
+    .role-bar-fill {
+      height: 100%; border-radius: 4px;
+      background: var(--gradient-accent);
+      transition: width 1s cubic-bezier(0.4,0,0.2,1);
+    }
+
+    .role-bar-count {
+      width: 30px; font-size: 12px; font-weight: 600; color: var(--text-primary);
+    }
+
+    /* Responsive sidebar toggle */
+    .sidebar-overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,0.5); z-index: 150;
+    }
+
+    @media (max-width: 900px) {
+      .admin-sidebar {
+        position: fixed; top: 57px; left: 0; z-index: 160;
+        transform: translateX(-100%); transition: transform 0.3s ease;
+      }
+      .admin-sidebar.open { transform: translateX(0); }
+      .sidebar-overlay.open { display: block; }
+      .admin-content { width: 100%; }
+    }
+
+    @media (max-width: 600px) {
+      .analytics-grid { grid-template-columns: repeat(2, 1fr); padding: 16px; }
+      .page-header { padding: 20px 16px 16px; }
+      .table-toolbar { padding: 12px 16px; }
+      .search-input { width: 180px !important; }
+    }
+
+    .custom-select-dark {
+      background: var(--bg-glass) !important;
+      border: 1px solid var(--border-color) !important;
+      color: var(--text-primary) !important;
+      appearance: none;
+      -webkit-appearance: none;
+      -moz-appearance: none;
+      padding: 8px 30px 8px 12px;
+      border-radius: 6px;
+      font-size: 13px;
+      cursor: pointer;
+    }
+
+/* Dropdown options (important) */
+    .custom-select-dark option {
+      background: #0f172a;   /* dark background */
+      color: #ffffff;
+    }
+
+/* Fix focus glow */
+    .custom-select-dark:focus {
+      border-color: var(--accent-cyan) !important;
+      box-shadow: 0 0 0 2px rgba(0,212,255,0.12) !important;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="analytics-bg"></div>
+
+  <!-- ── TOP BAR ────────────────────────────────────────────────── -->
+  <div class="admin-topbar">
+    <div class="d-flex align-items-center gap-3">
+      <button class="hamburger" id="sidebar-toggle" onclick="toggleSidebar()">☰</button>
+      <div class="brand">🎓 <span>SPAD</span> Admin</div>
+    </div>
+    <div class="topbar-right">
+      <div class="user-badge" id="admin-badge">
+        <div class="dot"></div>
+        <span id="admin-name">Admin</span>
+        <span style="font-size:10px; color:var(--accent-red); font-weight:700; letter-spacing:1px;">ADMIN</span>
+      </div>
+      <button class="nav-link-custom nav-logout" style="padding:6px 14px;" onclick="doLogout()">⏻ Logout</button>
+    </div>
+  </div>
+
+  <!-- Sidebar overlay (mobile) -->
+  <div class="sidebar-overlay" id="sidebar-overlay" onclick="toggleSidebar()"></div>
+
+  <!-- ── LAYOUT ─────────────────────────────────────────────────── -->
+  <div class="admin-layout">
+
+    <!-- Sidebar -->
+    <aside class="admin-sidebar" id="admin-sidebar">
+      <div class="sb-label">Overview</div>
+      <div class="sb-item active" onclick="showPage('analytics', this)">
+        <span class="icon">📊</span> Analytics
+      </div>
+
+      <div class="sb-label">Management</div>
+      <div class="sb-item" onclick="showPage('users', this)">
+        <span class="icon">👥</span> Users
+      </div>
+      <div class="sb-item" onclick="showPage('enquiries', this)">
+        <span class="icon">✉️</span> Enquiries
+      </div>
+
+      <!-- <div class="sb-label">Navigation</div>
+      <div class="sb-item" onclick="window.location.href='/dashboard'">
+        <span class="icon">🏠</span> View Dashboard
+      </div> -->
+    </aside> 
+
+    <!-- Content -->
+    <main class="admin-content">
+
+      <!-- ── PAGE: ANALYTICS ─────────────────────────────────────── -->
+      <div class="admin-page active" id="page-analytics">
+        <div class="page-header">
+          <div class="section-badge">System Overview</div>
+          <h2>Analytics Dashboard</h2>
+          <p>Real-time statistics on users and enquiries</p>
+        </div>
+
+        <div class="analytics-grid" id="analytics-grid">
+          <!-- Injected by JS -->
+        </div>
+
+        <!-- Role distribution -->
+        <div style="padding:0 28px 28px;">
+          <div class="data-table-wrapper" style="margin:0;">
+            <div class="data-table-header">
+              <h3>👥 User Role Distribution</h3>
+            </div>
+            <div style="padding:24px;">
+              <div class="role-bars" id="role-distribution">
+                <div style="color:var(--text-muted); font-size:13px;">Loading...</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── PAGE: USERS ─────────────────────────────────────────── -->
+      <div class="admin-page" id="page-users">
+        <div class="page-header">
+          <div class="section-badge">User Management</div>
+          <h2>Registered Users</h2>
+          <p>All accounts registered on the platform</p>
+        </div>
+
+        <div class="data-table-wrapper" style="margin:24px 28px;">
+          <div class="data-table-header">
+            <h3>👥 Users</h3>
+            <div class="d-flex align-items-center gap-2">
+              <input type="text" class="search-input" id="user-search" placeholder="🔍 Search users..." oninput="filterUsers()" />
+              <span class="count-pill" id="user-count">0</span>
+            </div>
+          </div>
+          <div class="table-responsive-wrap">
+            <table class="table-custom">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Name</th>
+                  <th>Email</th>
+                  <th>College</th>
+                  <th>Role</th>
+                  <th>Joined</th>
+                </tr>
+              </thead>
+              <tbody id="users-tbody">
+                <tr><td colspan="6" class="no-data"><div class="no-data-icon">⏳</div><p>Loading users...</p></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── PAGE: ENQUIRIES ────────────────────────────────────── -->
+      <div class="admin-page" id="page-enquiries">
+        <div class="page-header">
+          <div class="section-badge">Enquiry Management</div>
+          <h2>All Enquiries</h2>
+          <p>Manage and respond to user enquiries</p>
+        </div>
+
+        <div class="data-table-wrapper" style="margin:24px 28px;">
+          <div class="data-table-header">
+            <h3>✉️ Enquiries</h3>
+            <div class="d-flex align-items-center gap-2 flex-wrap">
+              <input type="text" class="search-input" id="enq-search" placeholder="🔍 Search enquiries..." oninput="filterEnquiries()" />
+              <select class="search-input custom-select-dark" id="enq-status-filter" oninput="filterEnquiries()" style="width:140px!  important;">
+                <option value="">All Status</option>
+                <option value="Pending">Pending</option>
+                <option value="Completed">Completed</option>
+              </select>
+              <span class="count-pill" id="enq-count">0</span>
+            </div>
+          </div>
+          <div class="table-responsive-wrap">
+            <table class="table-custom">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Name</th>
+                  <th>Email</th>
+                  <th>Phone</th>
+                  <th>College</th>
+                  <th>Role</th>
+                  <th>Message</th>
+                  <th>Status</th>
+                  <th>Date</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody id="enquiries-tbody">
+                <tr><td colspan="10" class="no-data"><div class="no-data-icon">⏳</div><p>Loading enquiries...</p></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <div class="toast-container" id="toast-container"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="/js/utils.js"></script>
+  <script>
+    // ─── State ────────────────────────────────────────────────────
+    let allUsers = [];
+    let allEnquiries = [];
+
+    // ─── Auth check ───────────────────────────────────────────────
+    (async () => {
+      const data = await API.get('/auth/me').catch(() => null);
+      if (!data || !data.success) { window.location.href = '/login'; return; }
+      if (data.user.role !== 'Admin') { window.location.href = '/dashboard'; return; }
+      document.getElementById('admin-name').textContent = data.user.name;
+      loadAllData();
+    })();
+
+    // ─── Load all data ────────────────────────────────────────────
+    async function loadAllData() {
+      await Promise.all([loadAnalytics(), loadUsers(), loadEnquiries()]);
+    }
+
+    // ─── Analytics ────────────────────────────────────────────────
+    async function loadAnalytics() {
+      const data = await API.get('/admin/analytics').catch(() => null);
+      if (!data || !data.success) return;
+
+      const a = data.analytics;
+      const grid = document.getElementById('analytics-grid');
+      grid.innerHTML = `
+        <div class="stat-card">
+          <div class="stat-icon cyan">👥</div>
+          <div class="stat-value">${a.totalUsers}</div>
+          <div class="stat-label">Total Users</div>
+        </div>
+        <div class="stat-card gold">
+          <div class="stat-icon gold">✉️</div>
+          <div class="stat-value">${a.totalEnquiries}</div>
+          <div class="stat-label">Total Enquiries</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon" style="background:rgba(255,215,0,0.15);">⏳</div>
+          <div class="stat-value" style="color:var(--accent-gold);">${a.pendingEnquiries}</div>
+          <div class="stat-label">Pending Enquiries</div>
+        </div>
+        <div class="stat-card green">
+          <div class="stat-icon green">✅</div>
+          <div class="stat-value" style="color:var(--accent-green);">${a.completedEnquiries}</div>
+          <div class="stat-label">Completed</div>
+        </div>
+      `;
+
+      // Role bars
+      const roleContainer = document.getElementById('role-distribution');
+      const roleColors = { Student: '#0066ff', Faculty: '#7c3aed', Researcher: '#00d4ff', Admin: '#ff4757' };
+      const total = a.totalUsers || 1;
+
+      roleContainer.innerHTML = a.roleDistribution.map(r => `
+        <div class="role-bar-item">
+          <div class="role-bar-label">${escapeHtml(r._id)}</div>
+          <div class="role-bar-track">
+            <div class="role-bar-fill" style="width:${Math.round((r.count/total)*100)}%; background:${roleColors[r._id] || '#00d4ff'};"></div>
+          </div>
+          <div class="role-bar-count">${r.count}</div>
+        </div>
+      `).join('');
+    }
+
+    // ─── Users ────────────────────────────────────────────────────
+    async function loadUsers() {
+      const data = await API.get('/admin/users').catch(() => null);
+      if (!data || !data.success) return;
+      allUsers = data.users;
+      renderUsers(allUsers);
+    }
+
+    function renderUsers(users) {
+      document.getElementById('user-count').textContent = users.length;
+      const tbody = document.getElementById('users-tbody');
+      if (!users.length) {
+        tbody.innerHTML = `<tr><td colspan="6"><div class="no-data"><div class="no-data-icon">👤</div><p>No users found</p></div></td></tr>`;
+        return;
+      }
+      tbody.innerHTML = users.map((u, i) => `
+        <tr>
+          <td style="color:var(--text-muted);font-size:12px;">${i + 1}</td>
+          <td><strong>${escapeHtml(u.name)}</strong></td>
+          <td style="color:var(--accent-cyan);font-size:13px;">${escapeHtml(u.email)}</td>
+          <td style="font-size:13px;">${escapeHtml(u.college)}</td>
+          <td>${roleBadge(u.role)}</td>
+          <td style="font-size:12px;color:var(--text-secondary);">${formatDate(u.created_at)}</td>
+        </tr>
+      `).join('');
+    }
+
+    function filterUsers() {
+      const q = document.getElementById('user-search').value.toLowerCase();
+      const filtered = allUsers.filter(u =>
+        u.name.toLowerCase().includes(q) ||
+        u.email.toLowerCase().includes(q) ||
+        u.college.toLowerCase().includes(q) ||
+        u.role.toLowerCase().includes(q)
+      );
+      renderUsers(filtered);
+    }
+
+    // ─── Enquiries ────────────────────────────────────────────────
+    async function loadEnquiries() {
+      const data = await API.get('/admin/enquiries').catch(() => null);
+      if (!data || !data.success) return;
+      allEnquiries = data.enquiries;
+      renderEnquiries(allEnquiries);
+    }
+
+    function renderEnquiries(enquiries) {
+      document.getElementById('enq-count').textContent = enquiries.length;
+      const tbody = document.getElementById('enquiries-tbody');
+      if (!enquiries.length) {
+        tbody.innerHTML = `<tr><td colspan="10"><div class="no-data"><div class="no-data-icon">✉️</div><p>No enquiries found</p></div></td></tr>`;
+        return;
+      }
+      tbody.innerHTML = enquiries.map((e, i) => {
+        const isPending = e.status === 'Pending';
+        const statusBadge = isPending
+          ? `<span class="badge-status badge-pending">⏳ Pending</span>`
+          : `<span class="badge-status badge-completed">✅ Completed</span>`;
+        const actionBtn = isPending
+          ? `<button class="btn-toggle-status btn-toggle-pending" onclick="toggleStatus('${e._id}', 'Completed')">Mark Done</button>`
+          : `<button class="btn-toggle-status btn-toggle-completed" onclick="toggleStatus('${e._id}', 'Pending')">Reopen</button>`;
+        const msg = e.message.length > 60 ? e.message.substring(0, 60) + '…' : e.message;
+        return `
+          <tr id="row-${e._id}">
+            <td style="color:var(--text-muted);font-size:12px;">${i + 1}</td>
+            <td><strong>${escapeHtml(e.name)}</strong></td>
+            <td style="color:var(--accent-cyan);font-size:13px;">${escapeHtml(e.email)}</td>
+            <td style="font-size:13px;">${escapeHtml(e.phone)}</td>
+            <td style="font-size:13px;">${escapeHtml(e.college)}</td>
+            <td>${roleBadge(e.role)}</td>
+            <td style="font-size:12px;color:var(--text-secondary);max-width:200px;" title="${escapeHtml(e.message)}">${escapeHtml(msg)}</td>
+            <td>${statusBadge}</td>
+            <td style="font-size:12px;color:var(--text-secondary);">${formatDate(e.created_at)}</td>
+            <td>${actionBtn}</td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function filterEnquiries() {
+      const q = document.getElementById('enq-search').value.toLowerCase();
+      const statusF = document.getElementById('enq-status-filter').value;
+      const filtered = allEnquiries.filter(e => {
+        const matchQ = !q || [e.name, e.email, e.college, e.message].some(v => v.toLowerCase().includes(q));
+        const matchStatus = !statusF || e.status === statusF;
+        return matchQ && matchStatus;
+      });
+      renderEnquiries(filtered);
+    }
+
+    async function toggleStatus(id, newStatus) {
+      const data = await API.patch(`/admin/enquiries/${id}`, { status: newStatus }).catch(() => null);
+      if (!data || !data.success) {
+        showToast('Failed to update status', 'error'); return;
+      }
+      // Update local state
+      const idx = allEnquiries.findIndex(e => e._id === id);
+      if (idx !== -1) allEnquiries[idx].status = newStatus;
+      filterEnquiries();
+      showToast(`Status updated to ${newStatus}`, 'success');
+
+      // Refresh analytics
+      loadAnalytics();
+    }
+
+    // ─── Page switching ───────────────────────────────────────────
+    function showPage(name, el) {
+      document.querySelectorAll('.admin-page').forEach(p => p.classList.remove('active'));
+      document.querySelectorAll('.sb-item').forEach(s => s.classList.remove('active'));
+      document.getElementById('page-' + name).classList.add('active');
+      if (el) el.classList.add('active');
+
+      // Close mobile sidebar
+      if (window.innerWidth <= 900) toggleSidebar(false);
+    }
+
+    // ─── Sidebar toggle ───────────────────────────────────────────
+    function toggleSidebar(force) {
+      const sidebar = document.getElementById('admin-sidebar');
+      const overlay = document.getElementById('sidebar-overlay');
+      const isOpen = sidebar.classList.contains('open');
+      const shouldOpen = force !== undefined ? force : !isOpen;
+      sidebar.classList.toggle('open', shouldOpen);
+      overlay.classList.toggle('open', shouldOpen);
+    }
+
+    // ─── Logout ───────────────────────────────────────────────────
+    async function doLogout() {
+      await API.post('/auth/logout', {});
+      window.location.href = '/login';
+    }
+
+    createParticles(10);
+  </script>
+</body>
+</html>

@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Loading — Student Performance Analytics</title>
+  <link rel="stylesheet" href="/css/style.css" />
+  <style>
+    .data-stream {
+      position: fixed;
+      inset: 0;
+      z-index: -1;
+      overflow: hidden;
+    }
+
+    .stream-line {
+      position: absolute;
+      top: 0;
+      width: 1px;
+      height: 100%;
+      background: linear-gradient(180deg, transparent, rgba(0, 212, 255, 0.3), transparent);
+      animation: streamDown linear infinite;
+      opacity: 0;
+    }
+
+    @keyframes streamDown {
+      0% { opacity: 0; transform: translateY(-100%); }
+      10% { opacity: 1; }
+      90% { opacity: 1; }
+      100% { opacity: 0; transform: translateY(100%); }
+    }
+
+    .loading-dots {
+      display: flex;
+      gap: 8px;
+      justify-content: center;
+      margin-top: 8px;
+    }
+
+    .dot {
+      width: 6px;
+      height: 6px;
+      background: var(--accent-cyan);
+      border-radius: 50%;
+      animation: dotBounce 1.2s ease-in-out infinite;
+    }
+
+    .dot:nth-child(2) { animation-delay: 0.2s; }
+    .dot:nth-child(3) { animation-delay: 0.4s; }
+
+    @keyframes dotBounce {
+      0%, 100% { transform: translateY(0); opacity: 0.4; }
+      50% { transform: translateY(-8px); opacity: 1; }
+    }
+
+    .welcome-text {
+      font-family: var(--font-display);
+      font-size: 14px;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: var(--accent-gold);
+      animation: fadeIn 0.8s 0.5s ease both;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .college-name {
+      font-family: var(--font-display);
+      font-size: 13px;
+      color: var(--text-muted);
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      animation: fadeIn 0.8s 0.8s ease both;
+      opacity: 0;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="analytics-bg"></div>
+  <div class="data-stream" id="data-stream"></div>
+
+  <div class="loading-screen">
+
+    <!-- Animated Logo -->
+    <div class="logo-container">
+      <div class="logo-ring"></div>
+      <div class="logo-ring"></div>
+      <div class="logo-ring"></div>
+      <div class="logo-inner">🎓</div>
+    </div>
+
+    <!-- Welcome text -->
+    <div>
+      <p class="welcome-text" id="welcome-msg">Welcome</p>
+      <p class="college-name" id="college-name">Loading your institution...</p>
+    </div>
+
+    <!-- Progress -->
+    <div>
+      <p class="loading-text">Loading Student Performance Analytics Dashboard</p>
+      <div class="loading-dots" style="margin-top:12px;">
+        <div class="dot"></div>
+        <div class="dot"></div>
+        <div class="dot"></div>
+      </div>
+    </div>
+
+    <div class="loading-bar"></div>
+
+    <p class="loading-sub">Initializing Academic Intelligence System</p>
+  </div>
+
+  <script src="/js/utils.js"></script>
+  <script>
+    // Create data stream lines
+    const stream = document.getElementById('data-stream');
+    for (let i = 0; i < 15; i++) {
+      const line = document.createElement('div');
+      line.className = 'stream-line';
+      line.style.left = (Math.random() * 100) + '%';
+      line.style.animationDuration = (Math.random() * 3 + 2) + 's';
+      line.style.animationDelay = (Math.random() * 5) + 's';
+      stream.appendChild(line);
+    }
+
+    createParticles(20);
+
+    // Load user info and redirect
+    async function initLoading() {
+      try {
+        const data = await API.get('/auth/me');
+
+        if (!data.success) {
+          window.location.href = '/login';
+          return;
+        }
+
+        const user = data.user;
+
+        // Set welcome message
+        document.getElementById('welcome-msg').textContent = `Welcome, ${user.name.split(' ')[0]}!`;
+        document.getElementById('college-name').textContent = user.college || 'Your Institution';
+
+        // Redirect after animation (2.8 seconds)
+        setTimeout(() => {
+          window.location.href = '/dashboard';
+        }, 2800);
+
+      } catch (err) {
+        window.location.href = '/login';
+      }
+    }
+
+    initLoading();
+  </script>
+</body>
+</html>
